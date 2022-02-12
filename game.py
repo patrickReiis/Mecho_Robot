@@ -14,7 +14,7 @@ BGCOLOR = (143,219,242)
 PLAYERSPEED = 3
 GRAVITY_FORCE = 0.2
 MAX_NUM_JUMPS = 2
-JUMP_HEIGHT = 5
+JUMP_HEIGHT = 8
 
 def terminate():
     pygame.quit()
@@ -64,7 +64,11 @@ def renderAndDrawRect(mapNum,camera):
     for row in range(len(mapNum)):
         for column in range(len(mapNum[row])):
             if mapNum[row][column] == 1:
-                DISPLAYSURF.blit(groundImg,(column*48-camera[0],row*48-camera[1]))
+                DISPLAYSURF.blit(groundImg,(column*48-camera[0],row*48-camera[1]-5))
+            if mapNum[row][column] == 2:
+                DISPLAYSURF.blit(soilImg,(column*48-camera[0],row*48-camera[1]-5))
+            if mapNum[row][column] == 3:
+                DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-5))
             if mapNum[row][column] != 0:
                 rects.append(Rect(column*48,row*48,48,48))
 
@@ -88,7 +92,7 @@ def move(player,tiles,movement):
     3- Update player's position so It doesn't cross the tiles it has collided with
     All of those steps are made separately for each axis
     """
-    collisionsTypes = {'ground':False} # Store in dictionary because if I need more types I can easily add them
+    collisionsTypes = {'ground':False,'top':False} # Store in dictionary because if I need more types I can easily add them
 
     player.x += movement[0]
     collisions = get_collisions(player,tiles)  # only testing collisions for X
@@ -106,6 +110,7 @@ def move(player,tiles,movement):
             collisionsTypes['ground'] = True
         if movement[1] < 0:
             player.top = rect.bottom
+            collisionsTypes['top'] = True
 
     return player, collisionsTypes
 
@@ -118,6 +123,8 @@ def shootLogic(player,mouseCoord):
     mousex,mousey = mouseCoord
     
     startx,starty = player.center # line (bullet) starts at the center of the player
+    #startx,starty = player[0],player[1] # test
+
     endx,endy = startx,starty # line (bullet) on first iteration will end at the center of the player
 
     # These values will update the line (bullet) position
@@ -154,16 +161,18 @@ def drawShoot(shootValues):
         pygame.draw.line(DISPLAYSURF,(255,126,0),(line[0],line[1]),(line[2],line[3]),width=5)
         pygame.draw.line(DISPLAYSURF,(255,255,255),(line[0],line[1]),(line[2],line[3]),width=2)
 
-def drawGun(gunImg,player,mouse_pos):
+def gunRotate(gunImg,player,mouse_pos):
     """
-    This function draws the gun and
-    also rotates it so the front sight is aligned with 
-    the mouse cursor
+    This function rotates the gun
+    so the front sight is aligned with the mouse cursor
+    Return the gun surface and it's location with a rect data type
     """
-    if not mouse_pos:
+    if mouse_pos[0] == -1 or mouse_pos[1] == -1:
+        print('oi')
         gun = gunImg.get_rect()
         gun.center = player.center
-        DISPLAYSURF.blit(gunImg,gun)
+
+        return gunImg,gun
 
     if mouse_pos:
 
@@ -190,14 +199,14 @@ def drawGun(gunImg,player,mouse_pos):
             b = math.sin(degrees)
         if flipGun:
             gunRotated = pygame.transform.flip(gunImg,True,False)
-            rotating = pygame.transform.rotate(gunRotated,degrees).convert()
+            gunRotating = pygame.transform.rotate(gunRotated,degrees).convert()
         else:
-            rotating = pygame.transform.rotate(gunImg,degrees).convert()
+            gunRotating = pygame.transform.rotate(gunImg,degrees).convert()
         
-        gun = rotating.get_rect()
+        gun = gunRotating.get_rect()
         gun.center = player.center
-
-        DISPLAYSURF.blit(rotating,gun)
+        
+        return gunRotating,gun
 
 def checkAnimation(counter,switchAnimation,name,player,mousepos):
     """
@@ -244,7 +253,7 @@ def main():
 
     gameMap = renderMap('map.txt') 
 
-    currentMousePos = tuple()
+    currentMousePos = -1,-1
     camera = [0,0] 
     shootValues = [] 
     right = False # player direction
@@ -277,28 +286,33 @@ def main():
                     right = False
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 1: # 1 means the left button on the mouse
-                    shootValues.append(shootLogic(player,event.pos))
+                    shootValues.append(shootLogic(player_camera,event.pos))
             if event.type == MOUSEMOTION:
                 currentMousePos = event.pos
-
-        movement = [0,0] # This variable will be used to update the player position, the first value is for the X axis and the second for the Y axis
         
+        movement = [0,0] # This variable will be used to update the player position, the first value is for the X axis and the second for the Y axis
+        camera[0] += player.x - camera[0]
+        camera[1] += player.y - camera[1]
+        
+        player_camera = player.copy() # Player camera is used as 
+        player_camera.x -= camera[0] #  argument in shootLogic function
+        player_camera.y -= camera[1] 
         if not right and not left:
-            if currentMousePos and currentMousePos[0] < player.x:
+            if currentMousePos and currentMousePos[0] < player_camera.x:
                 playerImg = pygame.transform.flip(origPlayerImg,True,False)
             else:
                 playerImg = origPlayerImg 
 
         if right:
             animationCounter += 1
-            animationCounter,playerAnimation = checkAnimation(animationCounter,animationValues,'walking/walking',player,currentMousePos)
+            animationCounter,playerAnimation = checkAnimation(animationCounter,animationValues,'walking/walking',player_camera,currentMousePos)
             if playerAnimation != None:
                 playerImg = playerAnimation
             movement[0] += PLAYERSPEED
 
         if left:
             animationCounter += 1
-            animationCounter,playerAnimation = checkAnimation(animationCounter,animationValues,'walking/walking',player,currentMousePos)
+            animationCounter,playerAnimation = checkAnimation(animationCounter,animationValues,'walking/walking',player_camera,currentMousePos)
             if playerAnimation != None:
                 playerImg = playerAnimation
             movement[0] -= PLAYERSPEED
@@ -311,17 +325,21 @@ def main():
         movement[1] += gravity
         player, collisionsTypes = move(player,tiles,movement)
         
-        if collisionsTypes['ground'] == True:
+        if collisionsTypes['ground']:
             gravity = 0
             num_jumps = 0
         else:
             gravity += GRAVITY_FORCE
+        if collisionsTypes['top']:
+            gravity = 0
 
         if gravity > 10:
             gravity = 10
         
-        DISPLAYSURF.blit(playerImg,player)
-        drawGun(gunImg,player,currentMousePos)
+        DISPLAYSURF.blit(playerImg,(player.x-camera[0],player.y-camera[1]))
+        
+        gun_with_rotation, gun = gunRotate(gunImg,player,(currentMousePos[0]+camera[0],currentMousePos[1]+camera[1]))
+        DISPLAYSURF.blit(gun_with_rotation,(gun.x-camera[0],gun.y-camera[1]))
 
         FPSCLOCK.tick(FPS)
         pygame.display.update()
