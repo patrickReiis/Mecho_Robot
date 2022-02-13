@@ -11,7 +11,7 @@ FPSCLOCK = pygame.time.Clock()
 
 BGCOLOR = (143,219,242)
 
-PLAYERSPEED = 3
+PLAYERSPEED = 5
 GRAVITY_FORCE = 0.2
 MAX_NUM_JUMPS = 2
 JUMP_HEIGHT = 8
@@ -168,7 +168,6 @@ def gunRotate(gunImg,player,mouse_pos):
     Return the gun surface and it's location with a rect data type
     """
     if mouse_pos[0] == -1 or mouse_pos[1] == -1:
-        print('oi')
         gun = gunImg.get_rect()
         gun.center = player.center
 
@@ -291,8 +290,8 @@ def main():
                 currentMousePos = event.pos
         
         movement = [0,0] # This variable will be used to update the player position, the first value is for the X axis and the second for the Y axis
-        camera[0] += player.x - camera[0]
-        camera[1] += player.y - camera[1]
+        camera[0] += (player.x - camera[0] - WINDOWWIDTH/2)/20
+        camera[1] += (player.y - camera[1] - WINDOWHEIGHT/2)/20
         
         player_camera = player.copy() # Player camera is used as 
         player_camera.x -= camera[0] #  argument in shootLogic function
