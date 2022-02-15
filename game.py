@@ -9,7 +9,8 @@ DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH,WINDOWHEIGHT),flags)
 FPS = 60
 FPSCLOCK = pygame.time.Clock()
 
-BGCOLOR = (143,219,242)
+BGCOLOR = (143,219,242) 
+#BGCOLOR = (11, 168, 230)
 
 PLAYERSPEED = 5
 GRAVITY_FORCE = 0.2
@@ -95,7 +96,7 @@ def move(player,tiles,movement):
     collisionsTypes = {'ground':False,'top':False} # Store in dictionary because if I need more types I can easily add them
 
     player.x += movement[0]
-    collisions = get_collisions(player,tiles)  # only testing collisions for X
+    collisions = get_collisions(player,tiles)  # only getting collisions for X
     for rect in collisions:
         if movement[0] > 0:
             player.right = rect.left
@@ -103,7 +104,7 @@ def move(player,tiles,movement):
             player.left = rect.right
 
     player.y += movement[1]
-    collisions = get_collisions(player, tiles)  # only testing collisions for Y
+    collisions = get_collisions(player, tiles)  # only getting collisions for Y
     for rect in collisions:
         if movement[1] > 0:
             player.bottom = rect.top
@@ -123,7 +124,6 @@ def shootLogic(player,mouseCoord):
     mousex,mousey = mouseCoord
     
     startx,starty = player.center # line (bullet) starts at the center of the player
-    #startx,starty = player[0],player[1] # test
 
     endx,endy = startx,starty # line (bullet) on first iteration will end at the center of the player
 
@@ -232,6 +232,14 @@ def checkAnimation(counter,switchAnimation,name,player,mousepos):
 
     return counter,playerSurf 
 
+def drawExplosion(location,number,camera):
+    name = 'images/explosion'  + str(number) + '.png'
+    
+    explosionImg = pygame.transform.scale(pygame.image.load(name).convert(),(20,10))
+    explosionImg.set_colorkey((255,255,255))
+
+    DISPLAYSURF.blit(explosionImg,(location.x-camera[0],location.y-camera[1]))
+
 def main():
     global groundImg,soilImg,soilSkullImg
 
@@ -249,6 +257,8 @@ def main():
 
     soilImg = pygame.transform.scale(pygame.image.load('images/soil.png').convert(),(48,48))
     soilSkullImg = pygame.transform.scale(pygame.image.load('images/soilSkull.png').convert(),(48,48))
+    
+
 
     gameMap = renderMap('map.txt') 
 
@@ -261,6 +271,8 @@ def main():
     animationCounter = 0
     animationValues = [5,10,15,20,25,30,35,40] # When the animationCounter is equal to any of these items, change player animation.
     num_jumps = 0 
+    jumpStop = 30
+    jumpCounter = [] # This list will append the player location and also a 'counter' value
 
 
     while True:
@@ -275,6 +287,7 @@ def main():
                     right = True
                 if event.key == K_w:
                     if num_jumps < MAX_NUM_JUMPS:
+                        jumpCounter.append([0,player.copy()])
                         num_jumps += 1
                         gravity = -JUMP_HEIGHT
 
@@ -335,6 +348,21 @@ def main():
         if gravity > 10:
             gravity = 10
         
+        for i in range(len(jumpCounter)):
+            jumpCounter[i][0] += 1
+            if jumpCounter[i][0] <= jumpStop/3*1: 
+                drawExplosion(jumpCounter[i][1],1,camera)
+
+            elif jumpCounter[i][0] <= jumpStop/3*2: 
+                drawExplosion(jumpCounter[i][1],2,camera)
+
+            elif jumpCounter[i][0] <= jumpStop/3*3: 
+                drawExplosion(jumpCounter[i][1],3,camera)
+
+        for jumpData in jumpCounter[:]:
+            if jumpData[0] > jumpStop:
+                jumpCounter.remove(jumpData)
+
         DISPLAYSURF.blit(playerImg,(player.x-camera[0],player.y-camera[1]))
         
         gun_with_rotation, gun = gunRotate(gunImg,player,(currentMousePos[0]+camera[0],currentMousePos[1]+camera[1]))
