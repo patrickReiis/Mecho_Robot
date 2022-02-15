@@ -10,7 +10,6 @@ FPS = 60
 FPSCLOCK = pygame.time.Clock()
 
 BGCOLOR = (143,219,242) 
-#BGCOLOR = (11, 168, 230)
 
 PLAYERSPEED = 5
 GRAVITY_FORCE = 0.2
