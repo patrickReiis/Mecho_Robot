@@ -1,6 +1,7 @@
 import pygame, sys, math
 from pygame.locals import *
 
+pygame.init()
 flags = pygame.SCALED|pygame.RESIZABLE
 WINDOWWIDTH = 1280
 WINDOWHEIGHT = 720
@@ -239,6 +240,43 @@ def drawExplosion(location,number,camera):
 
     DISPLAYSURF.blit(explosionImg,(location.x-camera[0],location.y-camera[1]))
 
+def introMenu():
+    menuIntro = pygame.transform.scale(pygame.image.load('images/menu intro.png'),(WINDOWWIDTH,WINDOWHEIGHT))
+    fontColor = (248,224,117)
+    
+    mouseCoord = None # If the game starts and the mouse is not on the screen it's position will be set to None
+    while True:
+        checkQuit()
+        for event in pygame.event.get():
+            if event.type == MOUSEMOTION:
+                mouseCoord = event.pos
+
+        DISPLAYSURF.blit(menuIntro,(0,0))
+
+        bigRect = Rect(180,270,420,270)
+        smallRect = Rect(190,280,400,250)
+        bigRect.centery = WINDOWHEIGHT/2
+        smallRect.centery = WINDOWHEIGHT/2
+
+        pygame.draw.rect(DISPLAYSURF,(255,255,255),bigRect,border_radius=5)
+        pygame.draw.rect(DISPLAYSURF,(34,48,68),smallRect,border_radius=5)
+        
+        playSurf = pygame.font.SysFont('chilanka',70).render('PLAY',False,fontColor)
+        playRect = playSurf.get_rect()
+        playRect.center = smallRect.center
+
+        if mouseCoord != None and smallRect.collidepoint(mouseCoord):
+            pygame.draw.rect(DISPLAYSURF,(164,59,57),smallRect,border_radius=5)
+            if pygame.mouse.get_pressed()[0]:
+                return
+
+        messageSurf = pygame.font.SysFont('ubuntumono',22).render('by: @patrickReiis',False,fontColor)
+
+        DISPLAYSURF.blit(messageSurf,(40,680))
+        DISPLAYSURF.blit(playSurf,playRect)
+
+        pygame.display.update()
+
 def main():
     global groundImg,soilImg,soilSkullImg
 
@@ -257,8 +295,6 @@ def main():
     soilImg = pygame.transform.scale(pygame.image.load('images/soil.png').convert(),(48,48))
     soilSkullImg = pygame.transform.scale(pygame.image.load('images/soilSkull.png').convert(),(48,48))
     
-
-
     gameMap = renderMap('map.txt') 
 
     currentMousePos = -1,-1
@@ -273,6 +309,7 @@ def main():
     jumpStop = 30
     jumpCounter = [] # This list will append the player location and also a 'counter' value
 
+    introMenu()
 
     while True:
         checkQuit()
