@@ -70,7 +70,9 @@ def renderAndDrawRect(mapNum,camera):
                 DISPLAYSURF.blit(soilImg,(column*48-camera[0],row*48-camera[1]-5))
             if mapNum[row][column] == 3:
                 DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-5))
-            if mapNum[row][column] != 0:
+            if mapNum[row][column] == 4:
+                DISPLAYSURF.blit(cloudImg1,(column*100-camera[0]*0.25,row*100-camera[1]*0.25))
+            if mapNum[row][column] != 0 and mapNum[row][column] != 4:
                 rects.append(Rect(column*48,row*48,48,48))
 
     return rects
@@ -278,7 +280,7 @@ def introMenu():
         pygame.display.update()
 
 def main():
-    global groundImg,soilImg,soilSkullImg
+    global groundImg,soilImg,soilSkullImg,cloudImg1
 
     playerImg = pygame.transform.scale(pygame.image.load('images/robot.png').convert(),(20,40))
     playerImg.set_colorkey((0,0,85)) # Any pixel that matches this RGB color will be transparent on the image 
@@ -295,6 +297,9 @@ def main():
     soilImg = pygame.transform.scale(pygame.image.load('images/soil.png').convert(),(48,48))
     soilSkullImg = pygame.transform.scale(pygame.image.load('images/soilSkull.png').convert(),(48,48))
     
+    cloudImg1 = pygame.transform.scale(pygame.image.load('images/cloud1.png'),(100,100))
+    cloudImg1.set_colorkey((143,219,242))
+
     gameMap = renderMap('map.txt') 
 
     currentMousePos = -1,-1
