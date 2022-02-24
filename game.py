@@ -49,7 +49,7 @@ def renderMap(textFile):
             rowList = []
             if row:
                 for x in row:
-                    rowList.append(int(x))
+                    rowList.append(x)
                 mapNum.append(rowList)
 
         return mapNum
@@ -64,15 +64,15 @@ def renderAndDrawRect(mapNum,camera):
 
     for row in range(len(mapNum)):
         for column in range(len(mapNum[row])):
-            if mapNum[row][column] == 1:
+            if mapNum[row][column] == '1':
                 DISPLAYSURF.blit(groundImg,(column*48-camera[0],row*48-camera[1]-5))
-            if mapNum[row][column] == 2:
+            if mapNum[row][column] == '2':
                 DISPLAYSURF.blit(soilImg,(column*48-camera[0],row*48-camera[1]-5))
-            if mapNum[row][column] == 3:
+            if mapNum[row][column] == '3':
                 DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-5))
-            if mapNum[row][column] == 4:
+            if mapNum[row][column] == '4':
                 DISPLAYSURF.blit(cloudImg1,(column*100-camera[0]*0.25,row*100-camera[1]*0.25))
-            if mapNum[row][column] != 0 and mapNum[row][column] != 4:
+            if mapNum[row][column] != '0' and mapNum[row][column] != '4':
                 rects.append(Rect(column*48,row*48,48,48))
 
     return rects
