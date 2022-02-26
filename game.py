@@ -12,10 +12,10 @@ FPSCLOCK = pygame.time.Clock()
 
 BGCOLOR = (143,219,242) 
 
-PLAYERSPEED = 5
-GRAVITY_FORCE = 0.2
+PLAYERSPEED = 4
+GRAVITY_FORCE = 0.5
 MAX_NUM_JUMPS = 2
-JUMP_HEIGHT = 8
+JUMP_HEIGHT = 10
 
 def terminate():
     pygame.quit()
@@ -61,6 +61,7 @@ def renderAndDrawRect(mapNum,camera):
     returns it.
     """
     rects = []
+    diagonalRects = []
 
     for row in range(len(mapNum)):
         for column in range(len(mapNum[row])):
@@ -72,10 +73,22 @@ def renderAndDrawRect(mapNum,camera):
                 DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-5))
             if mapNum[row][column] == '4':
                 DISPLAYSURF.blit(cloudImg1,(column*100-camera[0]*0.25,row*100-camera[1]*0.25))
-            if mapNum[row][column] != '0' and mapNum[row][column] != '4':
+            if mapNum[row][column] != '0' and mapNum[row][column] != '4' and mapNum[row][column] != 'd' and mapNum[row][column] != 'D':
                 rects.append(Rect(column*48,row*48,48,48))
 
-    return rects
+            # diagonal rects
+            if mapNum[row][column] == 'd':
+                diagonalRects.append({'rightUp':Rect(column*48,row*48,48,48)})
+                DISPLAYSURF.blit(ramp_d,(column*48-camera[0],row*48-camera[1]-5))
+            if mapNum[row][column] == 'D':
+                DISPLAYSURF.blit(ramp_D,(column*48-camera[0],row*48-camera[1]-5))
+                diagonalRects.append({'leftUp':Rect(column*48,row*48,48,48)})
+            if mapNum[row][column] == 'c':
+                DISPLAYSURF.blit(corner_c,(column*48-camera[0],row*48-camera[1]-5))
+            if mapNum[row][column] == 'C':
+                DISPLAYSURF.blit(corner_C,(column*48-camera[0],row*48-camera[1]-5))
+
+    return rects,diagonalRects
 
 def get_collisions(player,tiles):
     """
@@ -88,7 +101,7 @@ def get_collisions(player,tiles):
             collisions.append(tile)
     return collisions
 
-def move(player,tiles,movement):
+def move(player,tiles,movement,ramps=False):
     """
     1- Update player's position
     2- Check for collisions
@@ -114,6 +127,24 @@ def move(player,tiles,movement):
         if movement[1] < 0:
             player.top = rect.bottom
             collisionsTypes['top'] = True
+    
+    if ramps:
+        for ramp in ramps:
+            if 'rightUp' in ramp:
+                if ramp['rightUp'].colliderect(player):
+                    gap = player.right - ramp['rightUp'].x
+                    target_y = ramp['rightUp'].bottom - gap
+
+                    if player.bottom >= target_y:
+                        player.bottom = target_y  
+                        collisionsTypes['ground'] = True
+            elif 'leftUp' in ramp:
+                if ramp['leftUp'].colliderect(player):
+                    gap = ramp['leftUp'].right - player.x
+                    target_y = ramp['leftUp'].bottom - gap
+                    if player.bottom >= target_y:
+                        player.bottom = target_y
+                        collisionsTypes['ground'] = True
 
     return player, collisionsTypes
 
@@ -155,7 +186,7 @@ def shootData(shootValues):
     for shoot in shootValues[:]:
         if shoot[0] > WINDOWWIDTH or shoot[0] < 0 or shoot[1] > WINDOWHEIGHT or shoot[1] < 0:
             shootValues.remove(shoot)
-        if shoot[4][0] == 0 and shoot[4][1]:
+        if shoot[4][0] == 0 and shoot[4][1] == 0:
             shootValues.remove(shoot)
 
 def drawShoot(shootValues):
@@ -280,7 +311,7 @@ def introMenu():
         pygame.display.update()
 
 def main():
-    global groundImg,soilImg,soilSkullImg,cloudImg1
+    global groundImg,soilImg,soilSkullImg,cloudImg1,ramp_D,ramp_d,corner_C,corner_c
 
     playerImg = pygame.transform.scale(pygame.image.load('images/robot.png').convert(),(20,40))
     playerImg.set_colorkey((0,0,85)) # Any pixel that matches this RGB color will be transparent on the image 
@@ -297,7 +328,16 @@ def main():
     soilImg = pygame.transform.scale(pygame.image.load('images/soil.png').convert(),(48,48))
     soilSkullImg = pygame.transform.scale(pygame.image.load('images/soilSkull.png').convert(),(48,48))
     
-    cloudImg1 = pygame.transform.scale(pygame.image.load('images/cloud1.png'),(100,100))
+    ramp_D = pygame.transform.scale(pygame.image.load('images/ramp.png').convert(),(48,48))
+    ramp_D.set_colorkey((255,255,255))
+
+    ramp_d = pygame.transform.flip(ramp_D,True,False)
+    
+    corner_C = pygame.transform.scale(pygame.image.load('images/corner.png').convert(),(48,48)) 
+
+    corner_c = pygame.transform.flip(corner_C,True,False)
+
+    cloudImg1 = pygame.transform.scale(pygame.image.load('images/cloud1.png').convert(),(100,100))
     cloudImg1.set_colorkey((143,219,242))
 
     gameMap = renderMap('map.txt') 
@@ -373,19 +413,19 @@ def main():
         shootData(shootValues)
         drawShoot(shootValues)
 
-        tiles = renderAndDrawRect(gameMap,camera)
+        tiles,rampTiles = renderAndDrawRect(gameMap,camera)
 
         movement[1] += gravity
-        player, collisionsTypes = move(player,tiles,movement)
+        player, collisionsTypes = move(player,tiles,movement,rampTiles)
         
         if collisionsTypes['ground']:
             gravity = 0
             num_jumps = 0
         else:
             gravity += GRAVITY_FORCE
+
         if collisionsTypes['top']:
             gravity = 0
-
         if gravity > 10:
             gravity = 10
         
