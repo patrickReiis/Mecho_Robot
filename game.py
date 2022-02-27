@@ -343,7 +343,7 @@ def main():
     gameMap = renderMap('map.txt') 
 
     currentMousePos = -1,-1
-    camera = [0,0] 
+    true_camera = [0,0] 
     shootValues = [] 
     right = False # player direction
     left = False # player direction
@@ -384,8 +384,11 @@ def main():
                 currentMousePos = event.pos
         
         movement = [0,0] # This variable will be used to update the player position, the first value is for the X axis and the second for the Y axis
-        camera[0] += (player.x - camera[0] - WINDOWWIDTH/2)/20
-        camera[1] += (player.y - camera[1] - WINDOWHEIGHT/2)/20
+        true_camera[0] += (player.x - true_camera[0] - WINDOWWIDTH/2)/20
+        true_camera[1] += (player.y - true_camera[1] - WINDOWHEIGHT/2)/20
+        camera = true_camera.copy()
+        camera[0] = int(camera[0])
+        camera[1] = int(camera[1])
         
         player_camera = player.copy() # Player camera is used as 
         player_camera.x -= camera[0] #  argument in shootLogic function
