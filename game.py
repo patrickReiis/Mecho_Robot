@@ -12,10 +12,11 @@ FPSCLOCK = pygame.time.Clock()
 
 BGCOLOR = (143,219,242) 
 
-PLAYERSPEED = 4
+PLAYERSPEED = 5
 GRAVITY_FORCE = 0.5
 MAX_NUM_JUMPS = 2
 JUMP_HEIGHT = 10
+GAP_BLIT = 5 # When blitting something from the map.txt, subtract the Y position by GAP_BLIT
 
 def terminate():
     pygame.quit()
@@ -66,11 +67,11 @@ def renderAndDrawRect(mapNum,camera):
     for row in range(len(mapNum)):
         for column in range(len(mapNum[row])):
             if mapNum[row][column] == '1':
-                DISPLAYSURF.blit(groundImg,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(groundImg,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
             if mapNum[row][column] == '2':
-                DISPLAYSURF.blit(soilImg,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(soilImg,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
             if mapNum[row][column] == '3':
-                DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(soilSkullImg,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
             if mapNum[row][column] == '4':
                 DISPLAYSURF.blit(cloudImg1,(column*100-camera[0]*0.25,row*100-camera[1]*0.25))
             if mapNum[row][column] != '0' and mapNum[row][column] != '4' and mapNum[row][column] != 'd' and mapNum[row][column] != 'D':
@@ -79,14 +80,14 @@ def renderAndDrawRect(mapNum,camera):
             # diagonal rects
             if mapNum[row][column] == 'd':
                 diagonalRects.append({'rightUp':Rect(column*48,row*48,48,48)})
-                DISPLAYSURF.blit(ramp_d,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(ramp_d,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
             if mapNum[row][column] == 'D':
-                DISPLAYSURF.blit(ramp_D,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(ramp_D,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
                 diagonalRects.append({'leftUp':Rect(column*48,row*48,48,48)})
             if mapNum[row][column] == 'c':
-                DISPLAYSURF.blit(corner_c,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(corner_c,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
             if mapNum[row][column] == 'C':
-                DISPLAYSURF.blit(corner_C,(column*48-camera[0],row*48-camera[1]-5))
+                DISPLAYSURF.blit(corner_C,(column*48-camera[0],row*48-camera[1]-GAP_BLIT))
 
     return rects,diagonalRects
 
@@ -142,6 +143,7 @@ def move(player,tiles,movement,ramps=False):
                 if ramp['leftUp'].colliderect(player):
                     gap = ramp['leftUp'].right - player.x
                     target_y = ramp['leftUp'].bottom - gap
+
                     if player.bottom >= target_y:
                         player.bottom = target_y
                         collisionsTypes['ground'] = True
@@ -171,23 +173,41 @@ def shootLogic(player,mouseCoord):
         
     return [startx,starty,endx,endy,[updatex,updatey]]
 
-def shootData(shootValues):
+def shootData(shootValues,tiles):
     """
     This function updates the shootValues list and also removes the items
     if they leave the screen
     """
-
-
+    rects, diagonals = tiles
+    
     for i in range(len(shootValues)):
         shootValues[i][0] += shootValues[i][4][0]*3
         shootValues[i][1] += shootValues[i][4][1]*3
         shootValues[i][2] += shootValues[i][4][0]*4
         shootValues[i][3] += shootValues[i][4][1]*4
     for shoot in shootValues[:]:
-        if shoot[0] > WINDOWWIDTH or shoot[0] < 0 or shoot[1] > WINDOWHEIGHT or shoot[1] < 0:
-            shootValues.remove(shoot)
         if shoot[4][0] == 0 and shoot[4][1] == 0:
             shootValues.remove(shoot)
+        if shoot[0] > WINDOWWIDTH or shoot[0] < 0 or shoot[1] > WINDOWHEIGHT or shoot[1] < 0:
+            shootValues.remove(shoot)
+
+        for tile in rects:
+            if tile.collidepoint(shoot[2],shoot[3]):
+                shootValues.remove(shoot)
+        
+        # Instead of using complex math to create a check system for the ramps, I simply draw the bullet behind the ramp
+        # and waits for the bullet collide with a normal rect that is not a ramp
+        # However if for some reason I need to create that system, here's the basis for it:
+
+        if 0 > 1: # Just so python doesn't need to iterate over the ramps
+            for ramp in diagonals:
+                if 'rightUp' in ramp:
+                    if ramp['rightUp'].collidepoint(shoot[2],shoot[3]):
+                        pass
+
+                elif 'leftUp' in ramp:
+                    if ramp['leftUp'].collidepoint(shoot[2],shoot[3]):
+                        pass
 
 def drawShoot(shootValues):
      for line in shootValues:
@@ -219,7 +239,6 @@ def gunRotate(gunImg,player,mouse_pos):
         if (co < 0 and ca < 0) or (co < 0 and ca > 0):
             co = player.centerx - mouse_pos[0]
             ca = player.centery - mouse_pos[1]
-            flipGun = False
         else:
             co,ca = co1,ca1
             flipGun = True
@@ -309,6 +328,21 @@ def introMenu():
         DISPLAYSURF.blit(playSurf,playRect)
 
         pygame.display.update()
+
+def get_camera(tiles,diagonals,camera):
+    squares = []
+    ramps = []
+
+    for tile in tiles:
+        squares.append(Rect(tile.x-camera[0],tile.y-camera[1] -GAP_BLIT,tile.width,tile.height))
+
+    for ramp in diagonals:
+        if 'rightUp' in ramp:
+            ramps.append({'rightUp':Rect(ramp['rightUp'].x-camera[0],ramp['rightUp'].y-camera[1]-GAP_BLIT,ramp['rightUp'].width,ramp['rightUp'].height)})
+        elif 'leftUp' in ramp:
+            ramps.append({'leftUp':Rect(ramp['leftUp'].x-camera[0],ramp['leftUp'].y-camera[1]-GAP_BLIT,ramp['leftUp'].width,ramp['leftUp'].height)})
+
+    return squares,ramps
 
 def main():
     global groundImg,soilImg,soilSkullImg,cloudImg1,ramp_D,ramp_d,corner_C,corner_c
@@ -413,10 +447,12 @@ def main():
                 playerImg = playerAnimation
             movement[0] -= PLAYERSPEED
         
-        shootData(shootValues)
         drawShoot(shootValues)
 
         tiles,rampTiles = renderAndDrawRect(gameMap,camera)
+        tilesWithCamera,rampsWithCamera = get_camera(tiles,rampTiles,camera)
+
+        shootData(shootValues,(tilesWithCamera,rampsWithCamera))
 
         movement[1] += gravity
         player, collisionsTypes = move(player,tiles,movement,rampTiles)
