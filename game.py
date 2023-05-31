@@ -150,13 +150,15 @@ def move(player,tiles,movement,ramps=False):
 
     return player, collisionsTypes
 
-def shootLogic(player,mouseCoord):
+def shootLogic(player,mouseCoord, camera):
     """
     Each shoot must pass through the mouse position
     This funcion guarentess mathematically that 
     the shoots will follow a consistent straight path relative to the player center and mouse position
     """
     mousex,mousey = mouseCoord
+    mousex = mousex+camera[0]
+    mousey = mousey+camera[1]
     
     startx,starty = player.center # line (bullet) starts at the center of the player
 
@@ -173,7 +175,7 @@ def shootLogic(player,mouseCoord):
         
     return [startx,starty,endx,endy,[updatex,updatey]]
 
-def shootData(shootValues,tiles):
+def shootData(shootValues,tiles, camera):
     """
     This function updates the shootValues list and also removes the items
     if they leave the screen
@@ -186,13 +188,11 @@ def shootData(shootValues,tiles):
         shootValues[i][2] += shootValues[i][4][0]*4
         shootValues[i][3] += shootValues[i][4][1]*4
     for shoot in shootValues[:]:
-        if shoot[4][0] == 0 and shoot[4][1] == 0:
-            shootValues.remove(shoot)
-        if shoot[0] > WINDOWWIDTH or shoot[0] < 0 or shoot[1] > WINDOWHEIGHT or shoot[1] < 0:
+        if shoot[4][0]-camera[0] == 0 and shoot[4][1]-camera[1] == 0:
             shootValues.remove(shoot)
 
         for tile in rects:
-            if tile.collidepoint(shoot[2],shoot[3]):
+            if tile.collidepoint(shoot[2]-camera[0],shoot[3]-camera[1]):
                 shootValues.remove(shoot)
         
         # Instead of using complex math to create a check system for the ramps, I simply draw the bullet behind the ramp
@@ -209,10 +209,11 @@ def shootData(shootValues,tiles):
                     if ramp['leftUp'].collidepoint(shoot[2],shoot[3]):
                         pass
 
-def drawShoot(shootValues):
+def drawShoot(shootValues, camera):
      for line in shootValues:
-        pygame.draw.line(DISPLAYSURF,(255,126,0),(line[0],line[1]),(line[2],line[3]),width=5)
-        pygame.draw.line(DISPLAYSURF,(255,255,255),(line[0],line[1]),(line[2],line[3]),width=2)
+        pygame.draw.line(DISPLAYSURF,(255,126,0),(line[0]-camera[0],line[1]-camera[1]),(line[2]-camera[0],line[3]-camera[1]),width=5)
+        pygame.draw.line(DISPLAYSURF,(255,255,255),(line[0]-camera[0],line[1]-camera[1]),(line[2]-camera[0],line[3]-camera[1]),width=2)
+
 
 def gunRotate(gunImg,player,mouse_pos):
     """
@@ -413,7 +414,7 @@ def main():
                     right = False
             if event.type == MOUSEBUTTONDOWN:
                 if event.button == 1: # 1 means the left button on the mouse
-                    shootValues.append(shootLogic(player_camera,event.pos))
+                    shootValues.append(shootLogic(player,event.pos, camera))
             if event.type == MOUSEMOTION:
                 currentMousePos = event.pos
         
@@ -447,12 +448,12 @@ def main():
                 playerImg = playerAnimation
             movement[0] -= PLAYERSPEED
         
-        drawShoot(shootValues)
+        drawShoot(shootValues, camera)
 
         tiles,rampTiles = renderAndDrawRect(gameMap,camera)
         tilesWithCamera,rampsWithCamera = get_camera(tiles,rampTiles,camera)
 
-        shootData(shootValues,(tilesWithCamera,rampsWithCamera))
+        shootData(shootValues,(tilesWithCamera,rampsWithCamera), camera)
 
         movement[1] += gravity
         player, collisionsTypes = move(player,tiles,movement,rampTiles)
